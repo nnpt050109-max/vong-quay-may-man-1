@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Vòng quay ngẫu nhiên xóa quà khi trúng</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; text-align: center; background: #f8f9fa; margin: 0; padding: 20px; color: #333; }
+        .khung-chua { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 10px; flex-wrap: wrap; }
+        .cum-vong-quay { position: relative; display: inline-block; margin-top: 15px; }
+        canvas { border: 8px solid #333; border-radius: 50%; transition: transform 5s cubic-bezier(0.1, 0.8, 0.1, 1); background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        
+        #kim-chi {
+            font-size:44px;
+            color:#dc3545;
+            position:absolute;
+            top:-18px;
+            left:50%;
+            transform:translateX(-50%);
+            z-index:10;
+        }
+
+        .form-nhap-lieu { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 15px; text-align: left; width: 340px; }
+        .form-nhap-lieu label { font-weight: bold; font-size: 14px; display: block; margin-top: 10px; color: #555; }
+        .form-nhap-lieu input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .khung-danh-sach-qua { width: 320px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,.05); text-align: left; margin-top: 15px; }
+        .khung-danh-sach-qua h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 16px; color: #495057; }
+        .khung-danh-sach-qua ul { list-style:none; padding:0; margin:0; max-height:420px; overflow-y:auto; }
+        .khung-danh-sach-qua li { padding: 8px 10px; border-bottom: 1px solid #f1f3f5; font-size: 14px; font-weight: 500; color: #333; display: flex; justify-content: space-between; }
+        
+        button{
+            padding:12px 40px;
+            margin:25px 4px 15px;
+            border:none;
+            border-radius:6px;
+            font-size:18px;
+            font-weight:bold;
+            background:#28a745;
+            color:#fff;
+            cursor:pointer;
+            transition:.2s;
+            box-shadow:0 3px 6px rgba(40,167,69,.3);
+        }
+        
+        button:hover { background: #218838; transform: translateY(-1px); }
+        button:disabled { background: #6c757d !important; cursor: not-allowed; transform: none; box-shadow: none; }
+        h2 { cursor: default; user-select: none; display: block; text-align: center; color: #222; margin: 20px auto; }
+        #ket-qua { min-height: 35px; margin: 15px 0; color: #28a745; font-size: 22px; font-weight: bold; line-height: 1.5; }
+        #thong-bao-loi { color: #dc3545; font-weight: bold; margin-top: 5px; font-size: 14px; min-height: 20px; text-align: center; }
+        .khung-lich-su { width: 100%; max-width: 650px; margin: 30px auto 10px auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: left; }
+        .khung-lich-su h3 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #f1f3f5; color: #495057; font-weight: bold; }
+        tr:hover { background-color: #f8f9fa; }
+        .text-trong { color: #868e96; text-align: center; padding: 20px; }
+
+        table{ table-layout:fixed; }
+        td{ word-break:break-word; }
+
+        @media (max-width:900px){
+            .khung-chua{ flex-direction:column; align-items:center; }
+            .form-nhap-lieu, .khung-danh-sach-qua{ width:95%; max-width:420px; }
+            canvas{ width:320px; height:320px; }
+        }
+    </style>
+</head>
+<body>
+
+<h2>🎡 Vòng quay may mắn trúng thưởng</h2>
+
+<div class="khung-chua">
+    <div style="display: flex; flex-direction: column; align-items: center;">
+        <div class="form-nhap-lieu">
+            <label for="input-ten">Họ và tên của bạn:</label>
+            <input type="text" id="input-ten" placeholder="Nhập đầy đủ họ và tên...">
+            <label for="input-ma">Mã giới thiệu quay thưởng:</label>
+            <input type="text" id="input-ma" placeholder="Nhập mã giới thiệu gồm chữ/số...">
+            <div id="thong-bao-loi"></div>
+        </div>
+        <div class="cum-vong-quay">
+            <div id="kim-chi">▼</div>
+            <canvas id="vong-quay" width="400" height="400"></canvas>
+        </div>
+        <button id="nut-quay" onclick="batDauQuayThuong()">Xác thực & Quay thưởng</button>
+        <div id="ket-qua"></div>
+    </div>
+
+    <div class="khung-danh-sach-qua">
+        <h3>🎁 Tất cả quà tặng còn lại (<span id="so-luong-qua">0</span>)</h3>
+        <ul id="danh-sach-qua-hien-thi"></ul>
+    </div>
+</div>
+
+<div class="khung-lich-su">
+    <h3>📜 Lịch sử trúng thưởng <button onclick="xoaLichSu()" style="font-size:12px; padding:4px 8px; margin:0; background:#dc3545; box-shadow:none;">Xóa lịch sử</button></h3>
+    <div id="vung-bang-lich-su"><p class="text-trong">Chưa có lượt quay nào.</p></div>
+</div>
+
+<script>
+let danhSachPhanQua = ["Điện thoại", "Thẻ cào 100k", "Nước ngọt", "Chúc may mắn", "Khăn giấy", "Nón bảo hiểm", "Thẻ cào 50k", "Voucher 200k"];
+let cacMaHopLe = ["MA001", "MA002", "MA003", "ZZZ2EW", "VIP999", "MAYMAN777"];
+let kichBanTrungGiaiTheoTen = {
+    "VĂN A": "Khăn giấy",
+    "NGUYỄN VĂN B": "Điện thoại",
+    "TRẦN THỊ C": "Thẻ cào 100k"
+};
+
+let gocQuay = 0, maDaSuDung = [], danhSachLichSu = [];
+const mangMauSac = ["#ff9999","#99ccff","#99ff99","#ffff99","#ffcc99","#d5a6ff","#ffd966","#76d7c4","#f1948a","#85c1e9"];
+const nenCanvas = document.getElementById("vong-quay"), nguCam = nenCanvas.getContext("2d");
+
+function capNhatDanhSachQuaHienThi() {
+    let ul = document.getElementById("danh-sach-qua-hien-thi");
+    if (ul) {
+        ul.innerHTML = "";
+        document.getElementById("so-luong-qua").textContent = danhSachPhanQua.length;
+        danhSachPhanQua.forEach((qua, index) => {
+            let li = document.createElement("li");
+            li.innerHTML = "<span>" + (index + 1) + ". " + qua + "</span> <span style='color:#28a745; font-weight:bold;'>Còn lại</span>";
+            ul.appendChild(li);
+        });
+    }
+    localStorage.setItem("vongquay_danhSachPhanQua", JSON.stringify(danhSachPhanQua));
+    veVongQuay();
+}
+
+function veVongQuay(){
+    nguCam.clearRect(0, 0, 400, 400);
+    if (danhSachPhanQua.length === 0) {
+        nguCam.beginPath(); nguCam.arc(200, 200, 180, 0, Math.PI * 2); nguCam.strokeStyle = "#ccc"; nguCam.stroke();
+        nguCam.fillStyle = "#333"; nguCam.font = "bold 16px Arial"; nguCam.textAlign = "center";
+        nguCam.fillText("Hết quà tặng!", 200, 205);
+        return;
+    }
+    let buocGoc = 2 * Math.PI / danhSachPhanQua.length;
+    
+    for (let i = 0; i < danhSachPhanQua.length; i++) {
+        nguCam.beginPath(); 
+        nguCam.moveTo(200, 200);
+        nguCam.arc(200, 200, 180, i * buocGoc, (i + 1) * buocGoc);
+        nguCam.fillStyle = mangMauSac[i % mangMauSac.length]; 
+        nguCam.fill(); 
+        nguCam.strokeStyle = "#fff"; 
+        nguCam.lineWidth = 2; 
+        nguCam.stroke();
+        
+        nguCam.save(); 
+        nguCam.translate(200, 200); 
+        nguCam.rotate(i * buocGoc + buocGoc / 2);
+        nguCam.fillStyle = "#333"; 
+        nguCam.font = "bold 14px Arial"; 
+        nguCam.textAlign = "right";
+        let tHienThi = danhSachPhanQua[i].length > 12 ? danhSachPhanQua[i].substring(0, 10) + ".." : danhSachPhanQua[i];
+        nguCam.fillText(tHienThi, 170, 5); 
+        nguCam.restore();
+    }
+}
+
+function capNhatGiaoDienLichSu() {
+    let vungChua = document.getElementById("vung-bang-lich-su");
+    if (!vungChua) return;
+    localStorage.setItem("vongquay_danhSachLichSu", JSON.stringify(danhSachLichSu));
+    localStorage.setItem("vongquay_maDaSuDung", JSON.stringify(maDaSuDung));
+
+    if (danhSachLichSu.length === 0) {
+        vungChua.innerHTML = '<p class="text-trong">Chưa có lượt quay nào.</p>';
+        return;
+    }
+    let htmlTable = "<table><thead><tr><th style='width: 50px;'>STT</th><th>Họ và Tên</th><th style='width: 120px;'>Mã số</th><th>Phần quà</th></tr></thead><tbody>";
+    for(let i = danhSachLichSu.length - 1; i >= 0; i--) {
+        htmlTable += "<tr><td><b>" + (i + 1) + "</b></td><td>" + danhSachLichSu[i].ten + "</td><td><code style='background:#e9ecef; padding:2px 6px; border-radius:4px;'>" + danhSachLichSu[i].ma + "</code></td><td style='color:#e74c3c; font-weight:bold;'>" + danhSachLichSu[i].qua + "</td></tr>";
+    }
+    htmlTable += "</tbody></table>";
+    vungChua.innerHTML = htmlTable;
+}
+
+function batDauQuayThuong(){
+    if (danhSachPhanQua.length === 0) { alert("Vòng quay đã hết sạch quà tặng!"); return; }
+    let tenNguoiQuay = document.getElementById("input-ten").value.trim();
+    let maGioiThieu = document.getElementById("input-ma").value.trim().toUpperCase(); 
+    let oBaoLoi = document.getElementById("thong-bao-loi");
+    oBaoLoi.textContent = ""; document.getElementById("ket-qua").innerHTML = "";
+
+    if (tenNguoiQuay === "" || maGioiThieu === "") { oBaoLoi.textContent = "❌ Vui lòng nhập đầy đủ Họ tên và Mã giới thiệu!"; return; }
+    if (!cacMaHopLe.includes(maGioiThieu)) { oBaoLoi.textContent = "❌ Mã giới thiệu không tồn tại hoặc không hợp lệ!"; return; }
+    if (maDaSuDung.includes(maGioiThieu)) { oBaoLoi.textContent = "❌ Mã giới thiệu này đã được sử dụng rồi!"; return; }
+    
+    document.getElementById("nut-quay").disabled = true;
+    document.getElementById("input-ten").disabled = true;
+    document.getElementById("input-ma").disabled = true;
+
+document.getElementById("ket-qua").innerHTML = "⏳ Đang xác thực thông tin và quay thưởng...";
+let oTrung = -1;
+let tenKiemTra = tenNguoiQuay.toUpperCase();
+if (kichBanTrungGiaiTheoTen[tenKiemTra]) {
+let phanQuaChiDinh = kichBanTrungGiaiTheoTen[tenKiemTra];
+let viTriTrongMang = danhSachPhanQua.indexOf(phanQuaChiDinh);
+oTrung = (viTriTrongMang !== -1) ? viTriTrongMang : Math.floor(Math.random() * danhSachPhanQua.length);
+} else {
+oTrung = Math.floor(Math.random() * danhSachPhanQua.length);
+}
+let quaTangNhanDuoc = danhSachPhanQua[oTrung];
+let doCuaO = 360 / danhSachPhanQua.length;
+let phanDuGoc = gocQuay % 360;
+let mucTieuGoc = 3600 + 270 - (oTrung * doCuaO + doCuaO / 2) - phanDuGoc;
+gocQuay += mucTieuGoc;
+nenCanvas.style.transition = "transform 5s cubic-bezier(0.1, 0.8, 0.1, 1)";
+nenCanvas.style.transform = "rotate(" + gocQuay + "deg)";
+setTimeout(function () {
+document.getElementById("ket-qua").innerHTML = "🎉 Chúc mừng " + tenNguoiQuay + "
+
+🎁 Bạn nhận được: " + quaTangNhanDuoc + "";
+maDaSuDung.push(maGioiThieu);
+danhSachLichSu.push({ ten: tenNguoiQuay, ma: maGioiThieu, qua: quaTangNhanDuoc });
+let gocThucTeSauKhiQuay = gocQuay % 360;
+nenCanvas.style.transition = "none";
+nenCanvas.style.transform = "rotate(" + gocThucTeSauKhiQuay + "deg)";
+nenCanvas.offsetHeight;
+danhSachPhanQua.splice(oTrung, 1);
+capNhatDanhSachQuaHienThi();
+capNhatGiaoDienLichSu();
+document.getElementById("nut-quay").disabled = false;
+document.getElementById("input-ten").disabled = false;
+document.getElementById("input-ma").disabled = false;
+document.getElementById("input-ten").value = "";
+document.getElementById("input-ma").value = "";
+document.getElementById("input-ten").focus();
+oBaoLoi.textContent = "";
+}, 5000);
+}
+function xoaLichSu() {
+if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trúng thưởng và kích hoạt lại các mã đã dùng không?")) {
+danhSachLichSu = []; maDaSuDung = [];
+localStorage.removeItem("vongquay_danhSachPhanQua");
+localStorage.removeItem("vongquay_danhSachLichSu");
+localStorage.removeItem("vongquay_maDaSuDung");
+danhSachPhanQua = ["Điện thoại", "Thẻ cào 100k", "Nước ngọt", "Chúc may mắn", "Khăn giấy", "Nón bảo hiểm", "Thẻ cào 50k", "Voucher 200k"];
+gocQuay = 0;
+nenCanvas.style.transition = "none";
+nenCanvas.style.transform = "rotate(0deg)";
+capNhatDanhSachQuaHienThi();
+capNhatGiaoDienLichSu();
+}
+}
+function xuLyPhimEnter(event) {
+if (event.key === "Enter") {
+event.preventDefault();
+let nutQuay = document.getElementById("nut-quay");
+if (nutQuay && !nutQuay.disabled) {
+batDauQuayThuong();
+}
+}
+}
+// Gắn sự kiện lắng nghe bàn phím
+document.getElementById("input-ten").addEventListener("keydown", xuLyPhimEnter);
+document.getElementById("input-ma").addEventListener("keydown", xuLyPhimEnter);
+// Khởi tạo trạng thái lần đầu khi mở trang
+capNhatDanhSachQuaHienThi();
+window.onload = function() {
+let quaLuuTru = localStorage.getItem("vongquay_danhSachPhanQua");
+let lichSuLuuTru = localStorage.getItem("vongquay_danhSachLichSu");
+let maLuuTru = localStorage.getItem("vongquay_maDaSuDung");
+if (quaLuuTru !== null) danhSachPhanQua = JSON.parse(quaLuuTru);
+if (lichSuLuuTru !== null) danhSachLichSu = JSON.parse(lichSuLuuTru);
+if (maLuuTru !== null) maDaSuDung = JSON.parse(maLuuTru);
+capNhatDanhSachQuaHienThi();
+capNhatGiaoDienLichSu();
+};
+
+
