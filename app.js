@@ -21,7 +21,7 @@ const RIGGED_USERS_LIST = [
 const RESET_PASSWORD = "pass_11001";
 
 // 5. ĐƯỜNG LINK GOOGLE APPS SCRIPT WEB APP MỚI NHẤT CỦA BẠN (HỖ TRỢ JSONP LÁCH CORS)
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzn1g2GNJUHreDr7EIVMXVVzcuJupaLhS_S0GyFl8nVCBhVdMop3mEIQPiBZ57CN2rK/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyB4YyMwhr9WLdyfoUcL29RHJNQ24TkZxI1GDuyIGYpElGUIczOXeIspAcLRQWW-K3MNg/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
@@ -125,6 +125,7 @@ function setupEventListeners() {
             return;
         }
 
+        // 1. Kiểm tra nhanh danh sách mã gốc nạp sẵn trong code
         const isCodeExist = state.onetimeCodes.includes(code);
         if (!isCodeExist) {
             authStatus.textContent = "❌ Mã quay thưởng không tồn tại trên hệ thống!";
@@ -135,14 +136,16 @@ function setupEventListeners() {
         authStatus.textContent = "⏳ Đang kiểm tra trạng thái mã trực tuyến toàn hệ thống...";
         authStatus.style.color = "#ffa502";
 
-        // JSONP lách CORS an toàn đa thiết bị
+        // 2. TẠO LUỒNG KIỂM TRA ĐA THIẾT BỊ HOÀN TOÀN KHÔNG BỊ LỖI MẠNG CORS (CƠ CHẾ JSONP)
         const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
         
         window[callbackName] = function(res) {
+            // Làm sạch thẻ script tạm sau khi nhận xong dữ liệu
             document.body.removeChild(script);
             delete window[callbackName];
 
             if (res.valid === true) {
+                // Mã sạch 100%, chưa từng ai sử dụng ở bất kỳ thiết bị nào -> Cho phép quay
                 state.isAuthenticated = true;
                 state.currentUser = { name: name, code: code };
 
@@ -152,21 +155,23 @@ function setupEventListeners() {
 
                 if (matchedRiggedUser) {
                     state.forcedReward = matchedRiggedUser.targetReward;
-                    authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
+                    authStatus.textContent = "✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.";
                 } else {
                     state.forcedReward = "";
-                    authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
+                    authStatus.textContent = "✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.";
                 }
                 
                 authStatus.style.color = "#2ed573";
                 wheelContainer.classList.remove("disabled");
                 btnSpin.disabled = false;
             } else {
+                // Google Sheet phản hồi mã này đã bị một thiết bị khác dùng trước đó rồi!
                 authStatus.textContent = "❌ Mã này đã được sử dụng trước đó trên thiết bị khác!";
                 authStatus.style.color = "#ff4757";
             }
         };
 
+        // Chèn thẻ script động lách CORS lên máy chủ Google
         const script = document.createElement('script');
         script.src = `${GOOGLE_SHEET_URL}?checkCode=${code}&callback=${callbackName}`;
         script.onerror = function() {
@@ -254,25 +259,26 @@ function spinWheel() {
 function finishSpin(winnerIndex) {
     state.isSpinning = false;
     const luckyReward = state.rewards[winnerIndex];
-
     document.getElementById("winRewardName").textContent = luckyReward;
     document.getElementById("popupWin").classList.add("active");
+    
     if (typeof confetti === "function") {
         confetti({ particleCount: 140, spread: 70, origin: { y: 0.6 } });
     }
-
+    
     const timeStr = new Date().toLocaleString('vi-VN');
     const winData = {
         name: state.currentUser.name,
         code: state.currentUser.code,
         reward: luckyReward,
         time: timeStr
-    }; // Dấu đóng đối tượng winData chuẩn
-
+    };
+    
     state.history.unshift(winData);
     localStorage.setItem("lucky_history", JSON.stringify(state.history));
     updateHistoryUI();
     
+    // Đẩy dữ liệu lên Google Sheet bằng x-www-form-urlencoded nguyên bản (Lưu Sheet chắc chắn 100%)
     if (GOOGLE_SHEET_URL) {
         const formBody = new URLSearchParams();
         formBody.append("name", winData.name);
@@ -307,7 +313,6 @@ function finishSpin(winnerIndex) {
     authStatus.style.color = "#ffa502";
 }
 
-
 function updateHistoryUI() {
     if (!historyList) return;
     if (state.history.length === 0) {
@@ -315,12 +320,12 @@ function updateHistoryUI() {
         return;
     }
     historyList.innerHTML = state.history.map(item => `
-        <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;"> 
-            <div> 
-                <b style="color: #ffa502;">🔑 Mã: ${item.code}</b>  
-                <br>🎁 <span style="color: #fff; font-weight: 600;">${item.reward}</span> 
-            </div> 
-            <span style="color: #747d8c; font-size: 11px; align-self: center;">${item.time.split(" ") || item.time}</span> 
+        <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;">  
+            <div>  
+                <b style="color: #ffa502;">🔑 Mã: ${item.code}</b>   
+                <br>🎁 <span style="color: #fff; font-weight: 600;">${item.reward}</span>  
+            </div>  
+            <span style="color: #747d8c; font-size: 11px; align-self: center;">${item.time.split(" ") || item.time}</span>  
         </li>
     `).join("");
 }
