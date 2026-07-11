@@ -115,6 +115,7 @@ function drawWheel() {
 }
 
 function setupEventListeners() {
+    // 1. CƠ CHẾ XÁC THỰC NỘI BỘ: Không gọi mạng trực tuyến, loại bỏ hoàn toàn lỗi CORS
     btnVerifyCode.addEventListener("click", () => {
         const name = playerNameInput.value.trim();
         const code = inviteCodeInput.value.trim().toUpperCase();
@@ -125,7 +126,7 @@ function setupEventListeners() {
             return;
         }
 
-        // CƠ CHẾ KHÓA MÃ CỤC BỘ KHÔNG LỖI MẠNG: Kiểm tra xem mã có nằm trong danh sách chưa sử dụng không
+        // Kiểm tra xem mã có nằm trong danh sách mã dùng 1 lần chưa sử dụng không
         const isCodeValid = state.onetimeCodes.includes(code);
 
         if (isCodeValid) {
@@ -149,7 +150,7 @@ function setupEventListeners() {
             wheelContainer.classList.remove("disabled");
             btnSpin.disabled = false;
         } else {
-            // Chặn đứng nếu mã này đã được quay trước đó rồi
+            // Chặn đứng ngay lập tức nếu mã sai hoặc đã quay rồi và bị hủy ở lượt trước
             authStatus.textContent = "❌ Mã quay không chính xác, hoặc đã được sử dụng trước đó!";
             authStatus.style.color = "#ff4757";
         }
@@ -161,9 +162,10 @@ function setupEventListeners() {
         document.getElementById("popupWin").classList.remove("active");
     });
 
+    // 2. KHÓA RESET LỊCH SỬ BẮT BUỘC NHẬP MẬT KHẨU
     document.getElementById("btnResetAll").addEventListener("click", () => {
         const inputPassword = prompt("Nhập mật khẩu quản trị để thực hiện Reset hệ thống:");
-        if (inputPassword === null) return;
+        if (inputPassword === null) return; // Người dùng nhấn Hủy
 
         if (inputPassword === RESET_PASSWORD) {
             if (confirm("Mật khẩu chính xác! Hành động này sẽ xóa toàn bộ lịch sử hiển thị và khôi phục lại các mã quay. Bạn chắc chắn chứ?")) {
@@ -175,6 +177,7 @@ function setupEventListeners() {
         }
     });
 }
+
 
 function spinWheel() {
     if (state.isSpinning || state.rewards.length === 0) return;
