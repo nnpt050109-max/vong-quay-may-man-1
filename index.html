@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vòng Quay May Mắn</title>
+    <title>Vòng Quay May Mắn Cao Cấp</title>
+    <!-- Liên kết file CSS tách riêng -->
     <link rel="stylesheet" href="styles.css">
-    <!-- Thư viện tạo hiệu ứng pháo hoa rực rỡ -->
+    <!-- Thư viện hiệu ứng pháo hoa Confetti khi trúng giải -->
     <script src="https://jsdelivr.net"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Khu vực chính: Nhập thông tin & Vòng quay -->
+        <!-- Khu vực bên trái: Form xác thực thông tin & Vòng quay Canvas -->
         <div class="main-section">
             <div class="auth-box" id="authBox">
                 <h3>🔑 Nhập Thông Tin Tham Gia</h3>
-                <input type="text" id="playerNameInput" placeholder="Nhập tên(2 chữ)...">
+                <input type="text" id="playerNameInput" placeholder="Nhập họ và tên...">
                 <input type="text" id="inviteCodeInput" placeholder="Nhập mã quay thưởng...">
                 <button id="btnVerifyCode">Xác nhận thông tin</button>
                 <p class="status-msg" id="authStatus"></p>
             </div>
             
+            <!-- wheel-container sẽ bị làm mờ (disabled) cho đến khi xác thực thành công -->
             <div class="wheel-container disabled" id="wheelContainer">
                 <canvas id="wheelCanvas" width="500" height="500"></canvas>
                 <div class="pointer"></div>
@@ -27,30 +29,34 @@
             </div>
         </div>
 
-        <!-- Khu vực bên phải: Lịch sử trúng thưởng công khai -->
+        <!-- Khu vực bên phải: Lịch sử trúng thưởng công khai bảo mật -->
         <div class="sidebar-section">
             <div class="card">
                 <div class="card-header">
                     <h3>🏆 Lịch Sử Trúng Thưởng</h3>
+                    <!-- Nút Reset yêu cầu mật khẩu quản trị để thực hiện xóa -->
                     <button id="btnResetAll" class="btn-sm btn-danger">🔄 Reset</button>
                 </div>
                 <div class="card-body">
-                    <ul class="history-list" id="historyList"></ul>
+                    <ul class="history-list" id="historyList">
+                        <!-- Danh sách trúng thưởng định dạng (Mã quay - Quà) sẽ tự động sinh ra ở đây -->
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Popup chúc mừng -->
+    <!-- Popup chúc mừng kết quả (Bảo mật ẩn Họ Tên, chỉ chúc mừng chung) -->
     <div class="popup-overlay" id="popupWin">
         <div class="popup-content">
             <h2>🎉 CHÚC MỪNG BẠN!</h2>
-            <p>Bạn đã trúng thưởng phần quà:</p>
+            <p>Bạn đã may mắn trúng thưởng phần quà:</p>
             <h1 id="winRewardName">Phần quà</h1>
             <button id="btnClosePopup">Đóng thông báo</button>
         </div>
     </div>
 
+    <!-- Liên kết file JavaScript xử lý logic tách riêng -->
     <script src="app.js"></script>
 </body>
 </html>
