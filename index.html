@@ -1,8 +1,319 @@
-const inviteCodeInput = document.getElementById("inviteCodeInput");
-const btnVerifyCode = document.getElementById("btnVerifyCode");
-const authStatus = document.getElementById("authStatus");
-const wheelContainer = document.getElementById("wheelContainer");
-const historyList = document.getElementById("historyList");
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng Quay May Mắn Cao Cấp</title>
+    
+    <!-- ================================================================= -->
+    <!-- 🎨 1. KHU VỰC CSS (Giao diện hiển thị trang web)                 -->
+    <!-- ================================================================= -->
+    <style>
+        :root {
+            --primary-color: #ff4757;
+            --secondary-color: #2ed573;
+            --dark-color: #2f3542;
+            --light-color: #f1f2f6;
+            --border-radius: 12px;
+            --shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e272e 0%, #0f141c 100%);
+            color: var(--light-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 25px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .main-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .auth-box h3 { margin-bottom: 12px; color: #ffa502; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover { opacity: 0.9; }
+
+        .status-msg {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .wheel-container.disabled {
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 30px solid #ff4757;
+            z-index: 10;
+            filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.3));
+        }
+
+        #btnSpin {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #fff;
+            color: #111;
+            font-size: 16px;
+            font-weight: 800;
+            border: 5px solid var(--primary-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 11;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card-body { padding: 15px; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; width: auto; }
+        .btn-danger { background: #ff6b81; }
+
+        .history-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .popup-overlay {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .popup-overlay.active { display: flex; }
+
+        .popup-content {
+            background: #fff;
+            color: #111;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .popup-content h2 { color: var(--primary-color); }
+        .popup-content h1 { margin: 20px 0; font-size: 32px; color: #ffa502; }
+
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+    
+    <!-- Thư viện hiệu ứng pháo hoa Confetti bên thứ 3 -->
+    <script src="https://jsdelivr.net"></script>
+</head>
+<body>
+
+    <!-- ================================================================= -->
+    <!-- 🧱 2. KHU VỰC HTML (Khung xương nội dung)               -->
+    <!-- ================================================================= -->
+    <div class="container">
+        <div class="main-section">
+            <div class="auth-box" id="authBox">
+                <h3>🔑 Nhập Thông Tin Tham Gia</h3>
+                <input type="text" id="playerNameInput" placeholder="Nhập họ và tên...">
+                <input type="text" id="inviteCodeInput" placeholder="Nhập mã quay thưởng...">
+                <button id="btnVerifyCode">Xác nhận thông tin</button>
+                <p class="status-msg" id="authStatus"></p>
+            </div>
+            
+            <div class="wheel-container disabled" id="wheelContainer">
+                <canvas id="wheelCanvas" width="500" height="500"></canvas>
+                <div class="pointer"></div>
+                <button id="btnSpin" disabled>QUAY</button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🏆 Lịch Sử Trúng Thưởng</h3>
+                    <button id="btnResetAll" class="btn-sm btn-danger">🔄 Reset</button>
+                </div>
+                <div class="card-body">
+                    <ul class="history-list" id="historyList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup chúc mừng kết quả -->
+    <div class="popup-overlay" id="popupWin">
+        <div class="popup-content">
+            <h2>🎉 CHÚC MỪNG BẠN!</h2>
+            <p>Bạn đã trúng thưởng phần quà:</p>
+            <h1 id="winRewardName">Phần quà</h1>
+            <button id="btnClosePopup">Đóng thông báo</button>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- ⚙️ 3. KHU VỰC JAVASCRIPT (Xử lý toàn bộ logic hệ thống)           -->
+    <!-- ================================================================= -->
+    <script>
+        // --- CẤU HÌNH TRƯỚC TRONG CODE (BẠN ĐIỀU CHỈNH TẠI ĐÂY) ---
+        const HARDCODED_REWARDS = [
+            "iPhone 15 Pro Max", 
+            "Thẻ Cào 500.000đ", 
+            "Voucher Giảm 50%", 
+            "Tai Nghe Bluetooth", 
+            "Chúc Bạn May Mắn", 
+            "Bình Nước Giữ Nhiệt", 
+            "Sạc Dự Phòng 20W", 
+            "Mũ Bảo Hiểm Cao Cấp"
+        ];
+
+        const INITIAL_ONETIME_CODES = [
+            "QUAYSO01", "QUAYSO02", "QUAYSO03", "VIP999", "LUCKY2026", "GIFT888"
+        ];
+
+        const RIGGED_USERS_LIST = [
+            { name: "Nguyễn Văn A", targetReward: "iPhone 15 Pro Max" },
+            { name: "Trần Thị B",   targetReward: "Tai Nghe Bluetooth" },
+            { name: "Lê Hoàng C",   targetReward: "Thẻ Cào 500.000đ" }
+        ];
+
+        const RESET_PASSWORD = "admin"; // Mật khẩu để Reset hệ thống dữ liệu
+
+        const GOOGLE_SHEET_URL = "https://google.com";
+
+        // --- LOGIC HỆ THỐNG VẬN HÀNH ---
+        const state = {
+            rewards: HARDCODED_REWARDS,
+            onetimeCodes: [...INITIAL_ONETIME_CODES], 
+            history: [], 
+            isAuthenticated: false,
+            isSpinning: false,
+            currentAngle: 0,
+            currentUser: { name: "", code: "" },
+            forcedReward: "" 
+        };
+
+        const colors = ["#ff4757", "#2ed573", "#1e90ff", "#ffa502", "#9370db", "#11bbc0", "#ff6b81", "#3cd371"];
+        const canvas = document.getElementById("wheelCanvas");
+        const ctx = canvas.getContext("2d");
+        const btnSpin = document.getElementById("btnSpin");
+        const playerNameInput = document.getElementById("playerNameInput");
+        const inviteCodeInput = document.getElementById("inviteCodeInput");
+        const btnVerifyCode = document.getElementById("btnVerifyCode");
+        const authStatus = document.getElementById("authStatus");
+        const wheelContainer = document.getElementById("wheelContainer");
+        const historyList = document.getElementById("historyList");
 
 window.addEventListener("DOMContentLoaded", () => {
     loadDataFromStorage();
