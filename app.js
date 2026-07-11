@@ -21,7 +21,7 @@ const RIGGED_USERS_LIST = [
 const RESET_PASSWORD = "pass_11001";
 
 // 5. Đường link Google Apps Script Web App nhận dữ liệu của bạn
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwqXKeB3a0QcSmcCyGo--pPlbvtCtMQ6XGR3rxQPqsrZcNmA_c0AV2gH91bwVrzRe3kdA/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbw66XRWhAUHFX8UTHbtGTcBPpO-pEdmqNu6uGyKdrvDukIZOlUXikDvGguDV-Uax2zU5Q/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
