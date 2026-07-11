@@ -14,14 +14,14 @@ const INITIAL_ONETIME_CODES = [
 const RIGGED_USERS_LIST = [
     { name: "Thanh Thảo", targetReward: "Truyện BL(Bản ST)" },
     { name: "Thành Phát",   targetReward: "Truyện BL(Bản ĐB)" },
-    { name: ".....",   targetReward: "Chúc may mắn" }
+    { name: ".....",   targetReward: "Thẻ Cào 500.000đ" }
 ];
 
 // 4. MẬT KHẨU ĐỂ RESET LỊCH SỬ HỆ THỐNG
 const RESET_PASSWORD = "pass_11001";
 
-// 5. Đường link Google Apps Script Web App nhận dữ liệu của bạn
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPG0XagpMlYRroJD9LXTuB6A-NB5edkxOWkfBWg1bLLVrm8364__vx4mjxK4abzwRwQw/exec";
+// 5. ĐƯỜNG LINK GOOGLE APPS SCRIPT WEB APP MỚI NHẤT CỦA BẠN (HỖ TRỢ JSONP LÁCH CORS)
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwIXqMLjRjPAW2Rwj0K-idxDg6ReHYJ6oeyPkfR_gbeZd7Y6Zf8mh1jtrVLb6_VuBsy/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
@@ -125,7 +125,7 @@ function setupEventListeners() {
             return;
         }
 
-        // 1. Kiểm tra nhanh xem mã có nằm trong danh sách mã gốc nạp sẵn không
+        // 1. Kiểm tra nhanh danh sách mã gốc nạp sẵn trong code
         const isCodeExist = state.onetimeCodes.includes(code);
         if (!isCodeExist) {
             authStatus.textContent = "❌ Mã quay thưởng không tồn tại trên hệ thống!";
@@ -133,26 +133,19 @@ function setupEventListeners() {
             return;
         }
 
-        authStatus.textContent = "⏳ Đang kiểm tra mã trên hệ thống trực tuyến...";
+        authStatus.textContent = "⏳ Đang kiểm tra trạng thái mã trực tuyến toàn hệ thống...";
         authStatus.style.color = "#ffa502";
 
-        // 2. GỬI LỆNH KIỂM TRA ĐỒNG BỘ TRỰC TUYẾN ĐA THIẾT BỊ QUA CỔNG POST BIỂU MẪU PHẲNG
-        const checkForm = new URLSearchParams();
-        checkForm.append("action", "checkCodeOnly");
-        checkForm.append("code", code);
+        // 2. TẠO LUỒNG KIỂM TRA ĐA THIẾT BỊ HOÀN TOÀN KHÔNG BỊ LỖI MẠNG CORS (CƠ CHẾ JSONP)
+        const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+        
+        window[callbackName] = function(res) {
+            // Làm sạch thẻ script tạm sau khi nhận xong dữ liệu
+            document.body.removeChild(script);
+            delete window[callbackName];
 
-        fetch(GOOGLE_SHEET_URL, {
-            method: "POST",
-            mode: "cors", // Đọc phản hồi trực tiếp từ cổng POST của Google Apps Script nâng cấp
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
-            body: checkForm
-        })
-        .then(response => response.json())
-        .then(res => {
             if (res.valid === true) {
-                // Mã sạch hoàn toàn, chưa ai dùng trên bất kỳ thiết bị nào khác
+                // Mã sạch 100%, chưa từng ai sử dụng ở bất kỳ thiết bị nào -> Cho phép quay
                 state.isAuthenticated = true;
                 state.currentUser = { name: name, code: code };
 
@@ -162,26 +155,32 @@ function setupEventListeners() {
 
                 if (matchedRiggedUser) {
                     state.forcedReward = matchedRiggedUser.targetReward;
-                    authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
+                    authStatus.textContent = "✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.";
                 } else {
                     state.forcedReward = "";
-                    authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
+                    authStatus.textContent = "✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.";
                 }
                 
                 authStatus.style.color = "#2ed573";
                 wheelContainer.classList.remove("disabled");
                 btnSpin.disabled = false;
             } else {
-                // Đọc lệnh từ Sheet báo mã này đã bị thiết bị khác ăn mất
+                // Google Sheet phản hồi mã này đã bị một thiết bị khác dùng trước đó rồi!
                 authStatus.textContent = "❌ Mã này đã được sử dụng trước đó trên thiết bị khác!";
                 authStatus.style.color = "#ff4757";
             }
-        })
-        .catch(err => {
+        };
+
+        // Chèn thẻ script động lách CORS lên máy chủ Google
+        const script = document.createElement('script');
+        script.src = `${GOOGLE_SHEET_URL}?checkCode=${code}&callback=${callbackName}`;
+        script.onerror = function() {
             authStatus.textContent = "❌ Lỗi mạng kiểm tra dữ liệu trực tuyến!";
             authStatus.style.color = "#ff4757";
-            console.error("Lỗi đồng bộ thiết bị:", err);
-        });
+            document.body.removeChild(script);
+            delete window[callbackName];
+        };
+        document.body.appendChild(script);
     });
 
     btnSpin.addEventListener("click", spinWheel);
@@ -258,46 +257,44 @@ function finishSpin(winnerIndex) {
     }
 
     const timeStr = new Date().toLocaleString('vi-VN');
-
     const winData = {
-        name: state.currentUser.name, 
+        name: state.currentUser.name,
         code: state.currentUser.code,
         reward: luckyReward,
         time: timeStr
     };
-
+    
     state.history.unshift(winData);
     localStorage.setItem("lucky_history", JSON.stringify(state.history));
     updateHistoryUI();
-
-    // 🚀 LƯU LƯỢT QUAY VÀO GOOGLE SHEET: Gọi cổng dữ liệu POST đồng bộ
+    
+    // Đẩy dữ liệu lên Google Sheet bằng x-www-form-urlencoded nguyên bản (Lưu Sheet chắc chắn 100%)
     if (GOOGLE_SHEET_URL) {
         const formBody = new URLSearchParams();
-        formBody.append("action", "saveResult"); // Định danh luồng lưu kết quả trúng giải
         formBody.append("name", winData.name);
         formBody.append("code", winData.code);
         formBody.append("reward", winData.reward);
         formBody.append("time", winData.time);
-
+        
         fetch(GOOGLE_SHEET_URL, {
             method: "POST",
-            mode: "no-cors", // Bảo toàn đẩy gói tin đi thành công 100% chạy ngầm mượt mà
+            mode: "no-cors",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
             body: formBody
         })
-        .then(() => console.log("✅ Đã truyền lệnh đẩy dữ liệu Tên - Mã - Quà về Google Sheet!"))
-        .catch(err => console.error("❌ Lỗi mạng kết nối Google Sheet:", err));
+        .then(() => console.log("✅ Đồng bộ dữ liệu về Google Sheets thành công!"))
+        .catch(err => console.error("❌ Lỗi kết nối gửi dữ liệu:", err));
     }
-
+    
     const usedCodeIndex = state.onetimeCodes.indexOf(state.currentUser.code);
     if (usedCodeIndex !== -1) {
-        state.onetimeCodes.splice(usedCodeIndex, 1); 
+        state.onetimeCodes.splice(usedCodeIndex, 1);
         localStorage.setItem("lucky_onetime_codes", JSON.stringify(state.onetimeCodes));
         console.log(`🔒 Mã [${state.currentUser.code}] đã được tiêu thụ và bị hủy vĩnh viễn!`);
     }
-
+    
     state.isAuthenticated = false;
     state.forcedReward = "";
     btnSpin.disabled = true;
@@ -308,16 +305,13 @@ function finishSpin(winnerIndex) {
     authStatus.style.color = "#ffa502";
 }
 
-
-// 8. ĐỊNH DẠNG LỊCH SỬ CHỈ HIỂN THỊ: MÃ QUAY VÀ QUÀ (ẨN HỌ TÊN NGƯỜI CHƠI)
 function updateHistoryUI() {
     if (!historyList) return;
     if (state.history.length === 0) {
         historyList.innerHTML = '<li class="empty-msg" style="text-align: center; color: #747d8c; padding: 15px;">Chưa có ai trúng thưởng.</li>';
         return;
     }
-    
-    // Thuộc tính item.name đã bị loại bỏ khỏi giao diện hiển thị để bảo mật danh tính
+    // Ẩn Họ Tên theo yêu cầu: Chỉ in Mã Số và Quà lên giao diện hiển thị lịch sử công khai
     historyList.innerHTML = state.history.map(item => `
         <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;"> 
             <div> 
