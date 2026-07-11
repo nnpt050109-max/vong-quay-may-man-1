@@ -21,7 +21,7 @@ const RIGGED_USERS_LIST = [
 const RESET_PASSWORD = "pass_11001";
 
 // 5. Đường link Google Apps Script Web App nhận dữ liệu của bạn
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyAJRdI33ym8FkvPzfLzE_9dLp5NW4yXFTHZBYemXQNwcLuRMrY_esHvPVE2L60BwLoCQ/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwqXKeB3a0QcSmcCyGo--pPlbvtCtMQ6XGR3rxQPqsrZcNmA_c0AV2gH91bwVrzRe3kdA/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
@@ -125,31 +125,52 @@ function setupEventListeners() {
             return;
         }
 
-        const isCodeValid = state.onetimeCodes.includes(code);
-
-        if (isCodeValid) {
-            state.isAuthenticated = true;
-            state.currentUser = { name: name, code: code };
-
-            const matchedRiggedUser = RIGGED_USERS_LIST.find(
-                user => user.name.toLowerCase() === name.toLowerCase()
-            );
-
-            if (matchedRiggedUser) {
-                state.forcedReward = matchedRiggedUser.targetReward;
-                authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
-            } else {
-                state.forcedReward = "";
-                authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
-            }
-            
-            authStatus.style.color = "#2ed573";
-            wheelContainer.classList.remove("disabled");
-            btnSpin.disabled = false;
-        } else {
-            authStatus.textContent = "❌ Mã quay thưởng không chính xác, hoặc đã được sử dụng trước đó!";
+        // 1. Kiểm tra nhanh xem mã có nằm trong danh sách mã gốc nạp sẵn không
+        const isCodeExist = state.onetimeCodes.includes(code);
+        if (!isCodeExist) {
+            authStatus.textContent = "❌ Mã quay thưởng không tồn tại trên hệ thống!";
             authStatus.style.color = "#ff4757";
+            return;
         }
+
+        authStatus.textContent = "⏳ Đang kiểm tra mã trên hệ thống trực tuyến...";
+        authStatus.style.color = "#ffa502";
+
+        // 2. GỬI LỆNH KIỂM TRA ĐỒNG BỘ XEM MÃ NÀY ĐÃ TỪNG QUAY CHƯA (BẤT KỂ THIẾT BỊ NÀO)
+        fetch(`${GOOGLE_SHEET_URL}?checkCode=${code}`)
+        .then(response => response.json())
+        .then(res => {
+            if (res.valid === true) {
+                // Mã hoàn toàn sạch, chưa ai dùng trên bất kỳ thiết bị nào khác
+                state.isAuthenticated = true;
+                state.currentUser = { name: name, code: code };
+
+                const matchedRiggedUser = RIGGED_USERS_LIST.find(
+                    user => user.name.toLowerCase() === name.toLowerCase()
+                );
+
+                if (matchedRiggedUser) {
+                    state.forcedReward = matchedRiggedUser.targetReward;
+                    authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
+                } else {
+                    state.forcedReward = "";
+                    authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
+                }
+                
+                authStatus.style.color = "#2ed573";
+                wheelContainer.classList.remove("disabled");
+                btnSpin.disabled = false;
+            } else {
+                // Google Sheet báo mã này đã được quay ở một thiết bị khác rồi!
+                authStatus.textContent = "❌ Mã này đã được sử dụng trước đó trên thiết bị khác!";
+                authStatus.style.color = "#ff4757";
+            }
+        })
+        .catch(err => {
+            authStatus.textContent = "❌ Lỗi kết nối mạng kiểm tra mã trực tuyến!";
+            authStatus.style.color = "#ff4757";
+            console.error("Lỗi đồng bộ thiết bị:", err);
+        });
     });
 
     btnSpin.addEventListener("click", spinWheel);
@@ -158,10 +179,9 @@ function setupEventListeners() {
         document.getElementById("popupWin").classList.remove("active");
     });
 
-    // KHÓA BẢO MẬT: Yêu cầu mật khẩu trước khi Reset hệ thống
     document.getElementById("btnResetAll").addEventListener("click", () => {
         const inputPassword = prompt("Nhập mật khẩu quản trị để thực hiện Reset hệ thống:");
-        if (inputPassword === null) return; // Người dùng nhấn Hủy
+        if (inputPassword === null) return;
 
         if (inputPassword === RESET_PASSWORD) {
             if (confirm("Mật khẩu chính xác! Hành động này sẽ xóa toàn bộ lịch sử hiển thị và khôi phục lại các mã quay. Bạn chắc chắn chứ?")) {
@@ -173,6 +193,7 @@ function setupEventListeners() {
         }
     });
 }
+
 
 function spinWheel() {
     if (state.isSpinning || state.rewards.length === 0) return;
