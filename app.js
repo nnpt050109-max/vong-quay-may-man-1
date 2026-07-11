@@ -21,7 +21,7 @@ const RIGGED_USERS_LIST = [
 const RESET_PASSWORD = "pass_11001";
 
 // 5. ĐƯỜNG LINK GOOGLE APPS SCRIPT WEB APP MỚI NHẤT CỦA BẠN (HỖ TRỢ JSONP LÁCH CORS)
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwIXqMLjRjPAW2Rwj0K-idxDg6ReHYJ6oeyPkfR_gbeZd7Y6Zf8mh1jtrVLb6_VuBsy/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzn1g2GNJUHreDr7EIVMXVVzcuJupaLhS_S0GyFl8nVCBhVdMop3mEIQPiBZ57CN2rK/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
