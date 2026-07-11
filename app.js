@@ -3,34 +3,25 @@
 // =========================================================================
 
 // 1. Danh sách tất cả phần quà hiển thị trên vòng quay
-const HARDCODED_REWARDS = [
-    "iPhone 15 Pro Max", 
-    "Thẻ Cào 500.000đ", 
-    "Voucher Giảm 50%", 
-    "Tai Nghe Bluetooth", 
-    "Chúc Bạn May Mắn", 
-    "Bình Nước Giữ Nhiệt", 
-    "Sạc Dự Phòng 20W", 
-    "Mũ Bảo Hiểm Cao Cấp"
-];
+const HARDCODED_REWARDS = ["Truyện BL(Bản ST)", "Chúc may mắn", "30k tiền mặt/chuyển khoản", "Chúc may mắn", "Truyện BL(Bản ĐB)", "Chúc may mắn", "20k tiền mặt/chuyển khoản", "Chúc may mắn", "10k tiền mặt/chuyển khoản", "Chúc may mắn"];
 
 // 2. DANH SÁCH MÃ QUAY THƯỞNG SỬ DỤNG 1 LẦN DUY NHẤT (MÃ NÀO ĐÃ DÙNG SẼ BỊ HỦY)
 const INITIAL_ONETIME_CODES = [
-    "QUAYSO01", "QUAYSO02", "QUAYSO03", "VIP999", "LUCKY2026", "GIFT888"
+    "QUAYSO_01", "QUAYSOTRUNGTHUONG", "GIU_CHUOI", "MY_SQL", "SEND_GIFT", "GIFT_00"
 ];
 
 // 3. DANH SÁCH GÀI SẴN KỊCH BẢN TRÚNG GIẢI THEO HỌ TÊN (Gửi ngầm về Sheet, ẩn trên Web)
 const RIGGED_USERS_LIST = [
-    { name: "Nguyễn Văn A", targetReward: "iPhone 15 Pro Max" },
-    { name: "Trần Thị B",   targetReward: "Tai Nghe Bluetooth" },
-    { name: "Lê Hoàng C",   targetReward: "Thẻ Cào 500.000đ" }
+    { name: "Thanh Thảo", targetReward: "Truyện BL(Bản ST)" },
+    { name: "Thành Phát",   targetReward: "Truyện BL(Bản ĐB)" },
+    { name: ".....",   targetReward: "Chúc may mắn" }
 ];
 
 // 4. MẬT KHẨU ĐỂ RESET LỊCH SỬ HỆ THỐNG
-const RESET_PASSWORD = "admin";
+const RESET_PASSWORD = "pass_11001";
 
 // 5. Đường link Google Apps Script Web App nhận dữ liệu của bạn
-const GOOGLE_SHEET_URL = "https://google.com";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyAJRdI33ym8FkvPzfLzE_9dLp5NW4yXFTHZBYemXQNwcLuRMrY_esHvPVE2L60BwLoCQ/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
