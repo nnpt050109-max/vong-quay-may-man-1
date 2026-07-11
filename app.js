@@ -21,7 +21,7 @@ const RIGGED_USERS_LIST = [
 const RESET_PASSWORD = "pass_11001";
 
 // 5. Đường link Google Apps Script Web App nhận dữ liệu của bạn
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbw66XRWhAUHFX8UTHbtGTcBPpO-pEdmqNu6uGyKdrvDukIZOlUXikDvGguDV-Uax2zU5Q/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyPG0XagpMlYRroJD9LXTuB6A-NB5edkxOWkfBWg1bLLVrm8364__vx4mjxK4abzwRwQw/exec";
 
 // =========================================================================
 // 🚀 LOGIC HỆ THỐNG VẬN HÀNH CHUẨN (ĐÃ KIỂM TRA ĐÓNG MỞ NGOẶC CHUẨN XÁC)
@@ -136,51 +136,46 @@ function setupEventListeners() {
         authStatus.textContent = "⏳ Đang kiểm tra mã trên hệ thống trực tuyến...";
         authStatus.style.color = "#ffa502";
 
-        // 2. GỬI LỆNH KIỂM TRA ĐỒNG BỘ QUA PHƯƠNG THỨC POST ĐỂ LÁCH CORS AN TOÀN 100%
-        // Chúng ta mượn lệnh POST (chế độ no-cors) và truyền lệnh kiểm tra sang Google Sheet
-        const checkBody = new URLSearchParams();
-        checkBody.append("action", "checkCodeOnly");
-        checkBody.append("code", code);
+        // 2. GỬI LỆNH KIỂM TRA ĐỒNG BỘ TRỰC TUYẾN ĐA THIẾT BỊ QUA CỔNG POST BIỂU MẪU PHẲNG
+        const checkForm = new URLSearchParams();
+        checkForm.append("action", "checkCodeOnly");
+        checkForm.append("code", code);
 
         fetch(GOOGLE_SHEET_URL, {
             method: "POST",
-            mode: "no-cors", // Kích hoạt chạy ngầm, trình duyệt sẽ không bao giờ chặn lỗi CORS nữa
+            mode: "cors", // Đọc phản hồi trực tiếp từ cổng POST của Google Apps Script nâng cấp
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
-            body: checkBody
+            body: checkForm
         })
-        .then(() => {
-            // Giải thích kỹ thuật: Vì dùng no-cors nên fetch không đọc được kết quả phản hồi chữ từ Google.
-            // Do đó, để tối ưu vận hành thực tế, website sẽ tự so quét cột dữ liệu lịch sử ngay trong localStorage
-            // Nếu mã này đã từng quay và ghi vào lịch sử cục bộ máy tính của bạn trước đây:
-            const isCodeUsedLocally = state.history.some(item => item.code === code);
-            
-            if (isCodeUsedLocally) {
-                authStatus.textContent = "❌ Mã này đã được sử dụng trước đó!";
-                authStatus.style.color = "#ff4757";
-                return;
-            }
+        .then(response => response.json())
+        .then(res => {
+            if (res.valid === true) {
+                // Mã sạch hoàn toàn, chưa ai dùng trên bất kỳ thiết bị nào khác
+                state.isAuthenticated = true;
+                state.currentUser = { name: name, code: code };
 
-            // Nếu kiểm tra cục bộ vượt qua, cấp quyền cho phép quay mượt mà
-            state.isAuthenticated = true;
-            state.currentUser = { name: name, code: code };
+                const matchedRiggedUser = RIGGED_USERS_LIST.find(
+                    user => user.name.toLowerCase() === name.toLowerCase()
+                );
 
-            const matchedRiggedUser = RIGGED_USERS_LIST.find(
-                user => user.name.toLowerCase() === name.toLowerCase()
-            );
-
-            if (matchedRiggedUser) {
-                state.forcedReward = matchedRiggedUser.targetReward;
-                authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
+                if (matchedRiggedUser) {
+                    state.forcedReward = matchedRiggedUser.targetReward;
+                    authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
+                } else {
+                    state.forcedReward = "";
+                    authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
+                }
+                
+                authStatus.style.color = "#2ed573";
+                wheelContainer.classList.remove("disabled");
+                btnSpin.disabled = false;
             } else {
-                state.forcedReward = "";
-                authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
+                // Đọc lệnh từ Sheet báo mã này đã bị thiết bị khác ăn mất
+                authStatus.textContent = "❌ Mã này đã được sử dụng trước đó trên thiết bị khác!";
+                authStatus.style.color = "#ff4757";
             }
-            
-            authStatus.style.color = "#2ed573";
-            wheelContainer.classList.remove("disabled");
-            btnSpin.disabled = false;
         })
         .catch(err => {
             authStatus.textContent = "❌ Lỗi mạng kiểm tra dữ liệu trực tuyến!";
@@ -209,8 +204,6 @@ function setupEventListeners() {
         }
     });
 }
-
-
 
 function spinWheel() {
     if (state.isSpinning || state.rewards.length === 0) return;
@@ -267,7 +260,7 @@ function finishSpin(winnerIndex) {
     const timeStr = new Date().toLocaleString('vi-VN');
 
     const winData = {
-        name: state.currentUser.name, // Họ tên vẫn lưu ngầm để đẩy về Google Sheet
+        name: state.currentUser.name, 
         code: state.currentUser.code,
         reward: luckyReward,
         time: timeStr
@@ -277,9 +270,10 @@ function finishSpin(winnerIndex) {
     localStorage.setItem("lucky_history", JSON.stringify(state.history));
     updateHistoryUI();
 
-    // Tự động đẩy thông tin đầy đủ (Gồm cả tên) về Google Sheet quản lý ngầm công khai
+    // 🚀 LƯU LƯỢT QUAY VÀO GOOGLE SHEET: Gọi cổng dữ liệu POST đồng bộ
     if (GOOGLE_SHEET_URL) {
         const formBody = new URLSearchParams();
+        formBody.append("action", "saveResult"); // Định danh luồng lưu kết quả trúng giải
         formBody.append("name", winData.name);
         formBody.append("code", winData.code);
         formBody.append("reward", winData.reward);
@@ -287,7 +281,7 @@ function finishSpin(winnerIndex) {
 
         fetch(GOOGLE_SHEET_URL, {
             method: "POST",
-            mode: "no-cors", 
+            mode: "no-cors", // Bảo toàn đẩy gói tin đi thành công 100% chạy ngầm mượt mà
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
@@ -313,6 +307,7 @@ function finishSpin(winnerIndex) {
     authStatus.textContent = "🔒 Lượt quay đã hoàn tất. Mã quay này đã hết hiệu lực sử dụng!";
     authStatus.style.color = "#ffa502";
 }
+
 
 // 8. ĐỊNH DẠNG LỊCH SỬ CHỈ HIỂN THỊ: MÃ QUAY VÀ QUÀ (ẨN HỌ TÊN NGƯỜI CHƠI)
 function updateHistoryUI() {
