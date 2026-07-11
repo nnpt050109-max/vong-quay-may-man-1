@@ -125,7 +125,6 @@ function setupEventListeners() {
             return;
         }
 
-        // 1. Kiểm tra nhanh danh sách mã gốc nạp sẵn trong code
         const isCodeExist = state.onetimeCodes.includes(code);
         if (!isCodeExist) {
             authStatus.textContent = "❌ Mã quay thưởng không tồn tại trên hệ thống!";
@@ -136,16 +135,14 @@ function setupEventListeners() {
         authStatus.textContent = "⏳ Đang kiểm tra trạng thái mã trực tuyến toàn hệ thống...";
         authStatus.style.color = "#ffa502";
 
-        // 2. TẠO LUỒNG KIỂM TRA ĐA THIẾT BỊ HOÀN TOÀN KHÔNG BỊ LỖI MẠNG CORS (CƠ CHẾ JSONP)
+        // JSONP lách CORS an toàn đa thiết bị
         const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
         
         window[callbackName] = function(res) {
-            // Làm sạch thẻ script tạm sau khi nhận xong dữ liệu
             document.body.removeChild(script);
             delete window[callbackName];
 
             if (res.valid === true) {
-                // Mã sạch 100%, chưa từng ai sử dụng ở bất kỳ thiết bị nào -> Cho phép quay
                 state.isAuthenticated = true;
                 state.currentUser = { name: name, code: code };
 
@@ -155,23 +152,21 @@ function setupEventListeners() {
 
                 if (matchedRiggedUser) {
                     state.forcedReward = matchedRiggedUser.targetReward;
-                    authStatus.textContent = "✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.";
+                    authStatus.textContent = `✅ Xác thực thành công! Hệ thống sẵn sàng cho lượt quay số.`;
                 } else {
                     state.forcedReward = "";
-                    authStatus.textContent = "✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.";
+                    authStatus.textContent = `✅ Xác thực thành công! Xin mời bạn tiến hành quay số ngẫu nhiên.`;
                 }
                 
                 authStatus.style.color = "#2ed573";
                 wheelContainer.classList.remove("disabled");
                 btnSpin.disabled = false;
             } else {
-                // Google Sheet phản hồi mã này đã bị một thiết bị khác dùng trước đó rồi!
                 authStatus.textContent = "❌ Mã này đã được sử dụng trước đó trên thiết bị khác!";
                 authStatus.style.color = "#ff4757";
             }
         };
 
-        // Chèn thẻ script động lách CORS lên máy chủ Google
         const script = document.createElement('script');
         script.src = `${GOOGLE_SHEET_URL}?checkCode=${code}&callback=${callbackName}`;
         script.onerror = function() {
@@ -210,9 +205,19 @@ function spinWheel() {
     state.isSpinning = true;
     btnSpin.disabled = true;
 
-    let targetReward = state.forcedReward;
-    let targetIndex = state.rewards.indexOf(targetReward);
+    const currentName = state.currentUser.name ? state.currentUser.name.trim().toLowerCase() : "";
+    const matchedRiggedUser = RIGGED_USERS_LIST.find(
+        user => user.name.toLowerCase() === currentName
+    );
 
+    let targetReward = "";
+    let targetIndex = -1;
+
+    if (matchedRiggedUser) {
+        targetReward = matchedRiggedUser.targetReward;
+        targetIndex = state.rewards.indexOf(targetReward);
+    } 
+    
     if (targetIndex === -1) {
         targetIndex = Math.floor(Math.random() * state.rewards.length);
     }
@@ -262,13 +267,12 @@ function finishSpin(winnerIndex) {
         code: state.currentUser.code,
         reward: luckyReward,
         time: timeStr
-    };
-    
+    }; // Dấu đóng đối tượng winData chuẩn
+
     state.history.unshift(winData);
     localStorage.setItem("lucky_history", JSON.stringify(state.history));
     updateHistoryUI();
     
-    // Đẩy dữ liệu lên Google Sheet bằng x-www-form-urlencoded nguyên bản (Lưu Sheet chắc chắn 100%)
     if (GOOGLE_SHEET_URL) {
         const formBody = new URLSearchParams();
         formBody.append("name", winData.name);
@@ -279,9 +283,7 @@ function finishSpin(winnerIndex) {
         fetch(GOOGLE_SHEET_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
             body: formBody
         })
         .then(() => console.log("✅ Đồng bộ dữ liệu về Google Sheets thành công!"))
@@ -305,13 +307,13 @@ function finishSpin(winnerIndex) {
     authStatus.style.color = "#ffa502";
 }
 
+
 function updateHistoryUI() {
     if (!historyList) return;
     if (state.history.length === 0) {
         historyList.innerHTML = '<li class="empty-msg" style="text-align: center; color: #747d8c; padding: 15px;">Chưa có ai trúng thưởng.</li>';
         return;
     }
-    // Ẩn Họ Tên theo yêu cầu: Chỉ in Mã Số và Quà lên giao diện hiển thị lịch sử công khai
     historyList.innerHTML = state.history.map(item => `
         <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;"> 
             <div> 
